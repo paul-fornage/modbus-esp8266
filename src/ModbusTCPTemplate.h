@@ -70,6 +70,7 @@ class ModbusTCPTemplate : public Modbus {
 	uint16_t serverPort = 0;
 	uint16_t defaultPort = MODBUSTCP_PORT;
 	cbModbusResolver resolve = nullptr;
+	bool remainingTransactions();
 	TTransaction* searchTransaction(uint16_t id);
 	void cleanupConnections();	// Free clients if not connected
 	void cleanupTransactions();	// Remove timedout transactions and forced event
@@ -129,6 +130,11 @@ ModbusTCPTemplate<SERVER, CLIENT>::ModbusTCPTemplate() {
 	for (uint8_t i = 0; i < MODBUSIP_MAX_CLIENTS; i++)
 		tcpclient[i] = nullptr;
 	resolve = defaultResolver;
+}
+
+template <class SERVER, class CLIENT>
+bool  ModbusTCPTemplate<SERVER, CLIENT>::transactionsIsEmpty() {
+	return _trans.isEmpty();
 }
 
 template <class SERVER, class CLIENT>
