@@ -70,7 +70,6 @@ class ModbusTCPTemplate : public Modbus {
 	uint16_t serverPort = 0;
 	uint16_t defaultPort = MODBUSTCP_PORT;
 	cbModbusResolver resolve = nullptr;
-	bool remainingTransactions();
 	TTransaction* searchTransaction(uint16_t id);
 	void cleanupConnections();	// Free clients if not connected
 	void cleanupTransactions();	// Remove timedout transactions and forced event
@@ -91,6 +90,7 @@ class ModbusTCPTemplate : public Modbus {
 	public:
 	ModbusTCPTemplate();
 	~ModbusTCPTemplate();
+	bool transactionsIsEmpty() const;
 	bool isTransaction(uint16_t id);
 #if defined(MODBUSIP_USE_DNS)
 	bool isConnected(String host);
@@ -133,8 +133,8 @@ ModbusTCPTemplate<SERVER, CLIENT>::ModbusTCPTemplate() {
 }
 
 template <class SERVER, class CLIENT>
-bool  ModbusTCPTemplate<SERVER, CLIENT>::transactionsIsEmpty() {
-	return _trans.isEmpty();
+bool ModbusTCPTemplate<SERVER, CLIENT>::transactionsIsEmpty() const {
+	return _trans.isEmpty;
 }
 
 template <class SERVER, class CLIENT>
