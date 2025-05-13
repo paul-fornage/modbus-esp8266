@@ -71,7 +71,9 @@ Outgoing request timeout
 #define MODBUSIP_CONNECT_TIMEOUT 1000
 ESP32 only. Outgoing connection attempt timeout
 */
+#ifndef MODBUSIP_TIMEOUT
 #define MODBUSIP_TIMEOUT 1000
+#endif
 //#define MODBUSIP_CONNECT_TIMEOUT 1000
 
 #define MODBUSIP_UNIT	  255
@@ -82,7 +84,10 @@ ESP32 only. Outgoing connection attempt timeout
 #define MODBUSIP_MAX_CLIENTS    4
 #endif
 #define MODBUSIP_UNIQUE_CLIENTS
+
+#ifndef MODBUSIP_MAX_READMS
 #define MODBUSIP_MAX_READMS 100
+#endif
 
 /*
 Use available() instead of accept() to get TCP client
