@@ -196,7 +196,7 @@ class Modbus {
             };
 	    };
 
-        ~Modbus();
+        virtual ~Modbus();
 
         bool cbEnable(const bool state = true);
         bool cbDisable();
