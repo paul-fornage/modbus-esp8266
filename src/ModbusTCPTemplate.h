@@ -89,7 +89,7 @@ class ModbusTCPTemplate : public Modbus {
 	// data - if not null use buffer to save returned data instead of local registers
 	public:
 	ModbusTCPTemplate();
-	~ModbusTCPTemplate();
+	~ModbusTCPTemplate() override;
 	bool transactionsIsEmpty() const;
 	bool isTransaction(uint16_t id);
 #if defined(MODBUSIP_USE_DNS)
@@ -127,8 +127,8 @@ class ModbusTCPTemplate : public Modbus {
 template <class SERVER, class CLIENT>
 ModbusTCPTemplate<SERVER, CLIENT>::ModbusTCPTemplate() {
 	//_trans.reserve(MODBUSIP_MAX_TRANSACIONS);
-	for (uint8_t i = 0; i < MODBUSIP_MAX_CLIENTS; i++)
-		tcpclient[i] = nullptr;
+	for (auto & i : tcpclient)
+		i = nullptr;
 	resolve = defaultResolver;
 }
 
@@ -143,7 +143,7 @@ void ModbusTCPTemplate<SERVER, CLIENT>::client() {
 }
 
 template <class SERVER, class CLIENT>
-void ModbusTCPTemplate<SERVER, CLIENT>::server(uint16_t port) {
+void ModbusTCPTemplate<SERVER, CLIENT>::server(const uint16_t port) {
 	if (port)
 		serverPort = port;
 	else
@@ -283,14 +283,14 @@ void ModbusTCPTemplate<SERVER, CLIENT>::task() {
 			}
 			_len = __swap_16(_MBAP.length);
 			if (_len < MODBUSIP_MINFRAME) {	// Length is shorter than MODBUSIP_MINFRAME
-				Modbus::FunctionCode fc = FC_READ_COILS; // Just placeholder
+				FunctionCode fc = FC_READ_COILS; // Just placeholder
 				while (tcpclient[n]->available())	// Drop rest of the packet
 					tcpclient[n]->read();
 				exceptionResponse(fc, EX_ILLEGAL_VALUE);
 			}
 			_len--; // Do not count with last byte from MBAP
 			if (_len > MODBUSIP_MAXFRAME) {	// Length is over MODBUSIP_MAXFRAME
-			    Modbus::FunctionCode fc = (Modbus::FunctionCode)tcpclient[n]->read();
+			    const auto fc = static_cast<FunctionCode>(tcpclient[n]->read());
 				_len--;	// Subtract for read byte
 				for (uint8_t i = 0; tcpclient[n]->available() && i < _len; i++)	// Drop rest of the packet
 					tcpclient[n]->read();
@@ -300,7 +300,7 @@ void ModbusTCPTemplate<SERVER, CLIENT>::task() {
 				free(_frame);
 				_frame = (uint8_t*) malloc(_len);
 				if (!_frame) {
-			    	Modbus::FunctionCode fc = (Modbus::FunctionCode)tcpclient[n]->read();
+			    	const auto fc = static_cast<FunctionCode>(tcpclient[n]->read());
 					_len--;	// Subtract for read byte
 					for (uint8_t i = 0; tcpclient[n]->available() && i < _len; i++)	// Drop rest of the packet
 						tcpclient[n]->read();
@@ -308,7 +308,7 @@ void ModbusTCPTemplate<SERVER, CLIENT>::task() {
 				}
 				else {
 					if (tcpclient[n]->readBytes(_frame, _len) < _len) {	// Try to read MODBUS frame
-						exceptionResponse((Modbus::FunctionCode)_frame[0], EX_ILLEGAL_VALUE);
+						exceptionResponse(static_cast<FunctionCode>(_frame[0]), EX_ILLEGAL_VALUE);
 						//while (tcpclient[n]->available())	// Drop all incoming (if any)
 						//	tcpclient[n]->read();
 					}
@@ -338,7 +338,7 @@ void ModbusTCPTemplate<SERVER, CLIENT>::task() {
 									_reply = EX_UNEXPECTED_RESPONSE;
 								}
 								if (trans->cb) {
-									trans->cb((ResultCode)_reply, trans->transactionId, nullptr);
+									trans->cb(static_cast<ResultCode>(_reply), trans->transactionId, nullptr);
 								}
 								free(trans->_frame);
 								#if defined(MODBUS_USE_STL)
@@ -457,12 +457,12 @@ void ModbusTCPTemplate<SERVER, CLIENT>::onDisconnect(cbModbusConnect cb) {
 
 template <class SERVER, class CLIENT>
 void ModbusTCPTemplate<SERVER, CLIENT>::cleanupConnections() {
-	for (uint8_t i = 0; i < MODBUSIP_MAX_CLIENTS; i++) {
-		if (tcpclient[i] && !tcpclient[i]->connected()) {
+	for (auto & i : tcpclient) {
+		if (i && !i->connected()) {
 			//IPAddress ip = tcpclient[i]->remoteIP();
-			tcpclient[i]->stop();
-			delete tcpclient[i];
-			tcpclient[i] = nullptr;
+			i->stop();
+			delete i;
+			i = nullptr;
 			if (cbDisconnect && cbEnabled) 
 				cbDisconnect(IPADDR_NONE);
 		}

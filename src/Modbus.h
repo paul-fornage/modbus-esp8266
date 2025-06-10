@@ -7,6 +7,8 @@
 #pragma once
 #include "ModbusSettings.h"
 #include "Arduino.h"
+#include "StaticReg.h"
+#include "TAddress.h"
 #if defined(MODBUS_USE_STL)
  #include <vector>
  #include <algorithm>
@@ -40,47 +42,6 @@ typedef std::function<uint16_t(TRegister* reg, uint16_t val)> cbModbus; // Callb
 typedef uint16_t (*cbModbus)(TRegister* reg, uint16_t val); // Callback function Type
 #endif
 
-struct TAddress {
-    enum RegType {COIL, ISTS, IREG, HREG, NONE = 0xFF};
-    RegType type;
-    uint16_t address;
-    bool operator==(const TAddress &obj) const { // TAddress == TAddress
-	    return type == obj.type && address == obj.address;
-	}
-    bool operator!=(const TAddress &obj) const { // TAddress != TAddress
-        return type != obj.type || address != obj.address;
-    }
-    TAddress& operator++() {     // ++TAddress
-        address++;
-        return *this;
-    }
-    TAddress  operator++(int) {  // TAddress++
-        TAddress result(*this);
-         ++(*this);
-        return result;
-    }
-    TAddress& operator+=(const int& inc) {  // TAddress += integer
-        address += inc;
-        return *this;
-    }
-    const TAddress operator+(const int& inc) const {    // TAddress + integer
-        TAddress result(*this);
-        result.address += inc;
-        return result;
-    }
-    bool isCoil() {
-       return type == COIL;
-    }
-    bool isIsts() {
-       return type == ISTS;
-    }
-    bool isIreg() {
-        return type == IREG;
-    }
-    bool isHreg() {
-        return type == HREG;
-    }
-};
 
 struct TCallback {
     enum CallbackType {ON_SET, ON_GET};
@@ -90,7 +51,7 @@ struct TCallback {
 };
 
 struct TRegister {
-    TAddress    address;
+    TAddress address;
     uint16_t value;
     bool operator ==(const TRegister &obj) const {
 	    return address == obj.address;
@@ -205,11 +166,11 @@ class Modbus {
 	    ResultCode readBits(TAddress startreg, uint16_t numregs, FunctionCode fn);
 	    ResultCode readWords(TAddress startreg, uint16_t numregs, FunctionCode fn);
         
-        bool setMultipleBits(uint8_t* frame, TAddress startreg, uint16_t numoutputs);
-        bool setMultipleWords(uint16_t* frame, TAddress startreg, uint16_t numoutputs);
+        bool setMultipleBits(const uint8_t* frame, TAddress startreg, uint16_t numoutputs);
+        bool setMultipleWords(const uint16_t* frame, TAddress startreg, uint16_t numoutputs);
         
-        void getMultipleBits(uint8_t* frame, TAddress startreg, uint16_t numregs);
-        void getMultipleWords(uint16_t* frame, TAddress startreg, uint16_t numregs);
+        void getMultipleBits(uint8_t* frame, TAddress startreg, uint16_t numregs) const;
+        void getMultipleWords(uint16_t* frame, TAddress startreg, uint16_t numregs) const;
 
         void bitsToBool(bool* dst, uint8_t* src, uint16_t numregs);
         void boolToBits(uint8_t* dst, bool* src, uint16_t numregs);
@@ -239,7 +200,7 @@ class Modbus {
         #endif
         #else
         #if defined(MODBUS_GLOBAL_REGS)
-        static DArray<TRegister, 1, 1> _regs;
+        StaticRegisterArray _regs;
         static DArray<TCallback, 1, 1> _callbacks;
         #if defined(MODBUS_FILES)
         static ResultCode (*_onFile)(FunctionCode, uint16_t, uint16_t, uint16_t, uint8_t*);
@@ -278,12 +239,8 @@ class Modbus {
         // data - if null use local registers. Otherwise use data from array to erite to slave
         bool removeOn(TCallback::CallbackType t, TAddress address, cbModbus cb = nullptr, uint16_t numregs = 1);
     public:
-        bool addReg(TAddress address, uint16_t value = 0, uint16_t numregs = 1);
         bool Reg(TAddress address, uint16_t value);
-        uint16_t Reg(TAddress address);
-        bool removeReg(TAddress address, uint16_t numregs = 1);
-        bool addReg(TAddress address, uint16_t* value, uint16_t numregs = 1);
-        bool Reg(TAddress address, uint16_t* value, uint16_t numregs = 1);
+        uint16_t Reg(TAddress address) const;
 
         bool onGet(TAddress address, cbModbus cb = nullptr, uint16_t numregs = 1);
         bool onSet(TAddress address, cbModbus cb = nullptr, uint16_t numregs = 1);
